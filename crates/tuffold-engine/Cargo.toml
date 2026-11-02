@@ -1,0 +1,28 @@
+[package]
+name = "tuffold-engine"
+description = "Tuffold workflows: importing into projects and validating them"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-io.workspace = true
+tuffold-store.workspace = true
+tuffold-validate.workspace = true
+tuffold-quant.workspace = true
+tuffold-search.workspace = true
+tuffold-predict.workspace = true
+thiserror.workspace = true
+# Excel workbooks (MIT OR Apache-2.0); an established release, upgraded deliberately.
+rust_xlsxwriter = "0.90"
+
+[dev-dependencies]
+tempfile.workspace = true
+# Edits a demo copy in tests (already in the tree via the store).
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[lints]
+workspace = true

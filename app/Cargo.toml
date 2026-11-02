@@ -1,0 +1,42 @@
+[package]
+name = "tuffold-app"
+description = "Tuffold desktop application (GPUI)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "tuffold_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tuffold-app"
+path = "src/main.rs"
+
+[[test]]
+name = "snapshots"
+harness = false
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-io.workspace = true
+tuffold-store.workspace = true
+tuffold-engine.workspace = true
+tuffold-validate.workspace = true
+tuffold-quant.workspace = true
+# GPUI is pre-1.0 and ships breaking changes; gpui-kit pins the matching
+# gpui-pre snapshot. Upgrade both deliberately, never via a loose range.
+gpui-kit = "=0.7.1"
+anyhow = "1"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+gpui-kit = { version = "=0.7.1", features = ["test-support"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+# Builds a demo copy with a group sharing peptides (already in the tree via the store).
+rusqlite = { version = "0.32", features = ["bundled"] }

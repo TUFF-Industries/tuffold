@@ -1,0 +1,28 @@
+[package]
+name = "tuffold-io"
+description = "Tuffold importers: FASTA, FragPipe bundles, and (later) mzIdentML, pepXML, mzML"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+quick-xml = "0.42"
+flate2 = "1"
+# Scaffold .sf3 projects are SQLite containers (read-only).
+rusqlite = { version = "0.32", features = ["bundled"] }
+timsrust = { version = "=0.4.2", default-features = false, features = ["tdf"] }
+# Spectra: mzML (with Numpress) and MGF, pure-Rust zlib backend.
+mzdata = { version = "0.67", default-features = false, features = ["mzml", "mgf", "miniz_oxide", "numpress"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+flate2 = "1"
+tempfile.workspace = true
+
+[lints]
+workspace = true

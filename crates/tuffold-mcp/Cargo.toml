@@ -1,0 +1,30 @@
+[package]
+name = "tuffold-mcp"
+description = "Tuffold MCP server: projects, validation, search, and quantitation for AI assistants"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "tuffold-mcp"
+path = "src/main.rs"
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-engine.workspace = true
+tuffold-quant.workspace = true
+tuffold-store.workspace = true
+tuffold-validate.workspace = true
+rmcp = { version = "3.5", features = ["server", "transport-io"] }
+schemars = "1"
+serde.workspace = true
+serde_json.workspace = true
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

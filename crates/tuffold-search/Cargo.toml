@@ -1,0 +1,21 @@
+[package]
+name = "tuffold-search"
+description = "Tuffold built-in database search (Sage's search core)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-io.workspace = true
+sage-core.workspace = true
+serde_json.workspace = true
+rayon = "1"
+# Free memory, to size the index budget (already in the tree via gpui).
+sysinfo = { version = "=0.31.4", default-features = false, features = ["system"] }
+thiserror.workspace = true
+
+[lints]
+workspace = true

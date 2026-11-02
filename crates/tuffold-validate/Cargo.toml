@@ -1,0 +1,15 @@
+[package]
+name = "tuffold-validate"
+description = "Tuffold validation: target-decoy FDR, rescoring, engine combination, protein inference"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+[package]
+name = "tuffold-predict"
+description = "Tuffold deep-learned predictions: fragment intensities and retention times (AlphaPeptDeep models on candle)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-validate.workspace = true
+thiserror.workspace = true
+# Pure-Rust inference and training; reads PyTorch .pth weights directly.
+candle-core = "0.11"
+candle-nn = "0.11"
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+# Apple's BLAS for the matrix products on macOS (several times faster).
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core = { version = "0.11", features = ["accelerate"] }
+candle-nn = { version = "0.11", features = ["accelerate"] }
+
+[lints]
+workspace = true

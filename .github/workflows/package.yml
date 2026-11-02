@@ -1,0 +1,66 @@
+name: Package
+
+# Installers, built on demand (Actions > Package > Run workflow) or for a
+# version tag. They are uploaded as workflow artifacts; publishing a
+# release from them is a person's decision.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  macos:
+    name: macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: tools/package/macos.sh
+      - name: Smoke test the DMG
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" target/package/*.dmg
+          bin="$mnt/Tuffold.app/Contents/MacOS"
+          codesign --verify --strict "$mnt/Tuffold.app"
+          "$bin/tuffold" --version
+          "$bin/tuffold" demo --into "$RUNNER_TEMP/demo.tuff"
+          "$bin/tuffold" info "$RUNNER_TEMP/demo.tuff"
+          test -x "$bin/tuffold-app" && test -x "$bin/tuffold-mcp"
+          hdiutil detach "$mnt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tuffold-macos
+          path: target/package/*.dmg
+
+  linux:
+    name: Linux tarball
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: GPUI system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libfontconfig-dev libwayland-dev libxkbcommon-x11-dev \
+            libx11-xcb-dev libssl-dev libzstd-dev libasound2-dev libvulkan1 desktop-file-utils
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: tools/package/linux.sh
+      - name: Smoke test the tarball
+        run: |
+          dir=$(mktemp -d)
+          tar -C "$dir" -xzf target/package/*.tar.gz
+          "$dir"/tuffold-*/install.sh "$RUNNER_TEMP/prefix"
+          prefix="$RUNNER_TEMP/prefix"
+          desktop-file-validate "$prefix/share/applications/tuffold.desktop"
+          "$prefix/bin/tuffold" --version
+          "$prefix/bin/tuffold" demo --into "$RUNNER_TEMP/demo.tuff"
+          "$prefix/bin/tuffold" info "$RUNNER_TEMP/demo.tuff"
+          test -x "$prefix/bin/tuffold-app" && test -x "$prefix/bin/tuffold-mcp"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tuffold-linux
+          path: target/package/*.tar.gz

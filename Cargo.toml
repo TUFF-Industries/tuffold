@@ -1,0 +1,61 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "app"]
+# The desktop shell needs the frontend build and platform webview libraries;
+# plain `cargo test` / `cargo clippy` at the root cover only the headless crates.
+default-members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "Apache-2.0"
+repository = "https://github.com/TUFF-Industries/tuffold"
+
+[workspace.dependencies]
+tuffold-core = { path = "crates/tuffold-core" }
+tuffold-io = { path = "crates/tuffold-io" }
+tuffold-store = { path = "crates/tuffold-store" }
+tuffold-engine = { path = "crates/tuffold-engine" }
+tuffold-validate = { path = "crates/tuffold-validate" }
+tuffold-quant = { path = "crates/tuffold-quant" }
+tuffold-search = { path = "crates/tuffold-search" }
+tuffold-predict = { path = "crates/tuffold-predict" }
+# Sage (MIT, Michael Lazear): the search core only; not on crates.io.
+sage-core = { git = "https://github.com/lazear/sage", tag = "v0.14.7" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+clap = { version = "4", features = ["derive"] }
+tempfile = "3"
+
+# Validation is numeric work over every PSM; optimize it even in debug builds
+# so tests (many seeded validation runs) and debug sessions stay fast.
+[profile.dev.package.tuffold-validate]
+opt-level = 3
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+# The built-in search scores every spectrum against a fragment index.
+[profile.dev.package.sage-core]
+opt-level = 3
+
+[profile.dev.package.tuffold-search]
+opt-level = 3
+
+# Neural-network inference and fine-tuning are slow unoptimized.
+[profile.dev.package.tuffold-predict]
+opt-level = 3
+
+[profile.dev.package.candle-core]
+opt-level = 3
+
+[profile.dev.package.candle-nn]
+opt-level = 3
+
+[profile.dev.package.gemm]
+opt-level = 3

@@ -1,0 +1,28 @@
+[package]
+name = "tuffold-cli"
+description = "Tuffold command-line interface"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "tuffold"
+path = "src/main.rs"
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-io.workspace = true
+tuffold-store.workspace = true
+tuffold-engine.workspace = true
+tuffold-validate.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

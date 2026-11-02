@@ -1,0 +1,23 @@
+[package]
+name = "tuffold-store"
+description = "Tuffold project files (.tuff): a versioned SQLite store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tuffold-core.workspace = true
+tuffold-validate.workspace = true
+tuffold-quant.workspace = true
+thiserror.workspace = true
+# Bundled SQLite: every platform reads and writes .tuff files with the same engine.
+rusqlite = { version = "0.32", features = ["bundled"] }
+flate2 = "1"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

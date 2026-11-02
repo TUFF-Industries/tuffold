@@ -1,0 +1,28 @@
+name: Something broke or looks wrong
+description: A crash, a refused file, or a result you don't believe
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Your data
+      description: Engine and version, file types, instrument. Link a public dataset (a PXD number) if you can. Don't attach anything you can't share.
+    validations:
+      required: true
+  - type: textarea
+    id: comparison
+    attributes:
+      label: For a wrong-looking result
+      description: The other tool and its settings, the numbers from each, and the FDR level compared.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste the file from Tuffold > Save Diagnostics… or `tuffold diagnostics`. It has counts, no sample or protein names, but read it first; a crash message can name a file.
+      render: text

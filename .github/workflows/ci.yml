@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  engine:
+    name: Engine (headless crates)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+      - name: No machine-specific absolute paths
+        run: "! git grep -nE '/(Users|home)/[A-Za-z]' -- ':!*.lock' ':!.github/workflows/ci.yml'"
+
+  desktop-linux:
+    name: Desktop app (Linux build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: GPUI system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libfontconfig-dev libwayland-dev libxkbcommon-x11-dev \
+            libx11-xcb-dev libssl-dev libzstd-dev libasound2-dev libvulkan1
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -p tuffold-app --all-targets --locked -- -D warnings
+      - run: cargo test -p tuffold-app --locked
+
+  desktop-macos:
+    name: Desktop app (macOS, visual snapshots)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -p tuffold-app --all-targets --locked -- -D warnings
+      - run: cargo test -p tuffold-app --locked
+      - name: Upload snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots
+          path: target/tmp/snapshots/*.png
+          if-no-files-found: ignore

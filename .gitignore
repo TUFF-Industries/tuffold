@@ -1,0 +1,32 @@
+# Rust
+/target/
+
+# Python dev tooling (cross-validation scripts only)
+__pycache__/
+*.py[cod]
+.venv/
+
+# OS / editor
+.DS_Store
+
+# Generated exports and project files are written wherever the user points
+# the app; they never belong in the repository.
+/*.html
+/*.csv
+/*.tuff
+*.tuff.undo
+*.tuff.undo.new
+*.tuff.undo.swap
+
+# Loose protein databases from real bundles; the fixture's lives under fixtures/.
+/*.fas
+/*.fasta
+/*.fa
+
+# Philosopher workspace state (machine-local)
+.meta/
+
+# Machine-local
+/CLAUDE.local.md
+.claude/
+/floorplan/

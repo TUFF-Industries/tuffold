@@ -1,0 +1,5 @@
+Peptide Sequence	Prev AA	Next AA	Start	End	Peptide Length	Charges	Protein	Protein ID	Entry Name	Gene	Protein Description	Mapped Genes	Mapped Proteins	control-1 Spectral Count	control-1 Intensity	treatment-1 Spectral Count	treatment-1 Intensity
+PEPTIDEK	K	A	15	22	8	2	sp|P00001|P1_HUMAN Protein one	P00001	P1_HUMAN	P1	Protein one OS=Homo sapiens OX=9606			2	28024.5	1	15678.9
+SEQUENCEK	K	A	40	48	9	3	sp|P00001|P1_HUMAN Protein one	P00001	P1_HUMAN	P1	Protein one OS=Homo sapiens OX=9606	P2	P00002	1	9876.5	0	0.0
+ANOTHERPEP	K	A	30	39	10	2	sp|P00003|P3_HUMAN Protein three	P00003	P3_HUMAN	P3	Protein three OS=Homo sapiens OX=9606			0	0.0	1	6789.0
+FOURTHPEP	K	A	77	85	9	2	sp|P00002|P2_HUMAN Protein two	P00002	P2_HUMAN	P2	Protein two OS=Homo sapiens OX=9606			1	4532.1	0	0.0

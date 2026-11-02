@@ -1,0 +1,17 @@
+Tuffold
+Copyright 2026 Ansar Salken (TUFF Industries)
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Built-in search uses the search core of Sage (https://github.com/lazear/sage),
+MIT License, Copyright Michael Lazear.
+
+crates/tuffold-predict implements the network layers of AlphaPeptDeep's models
+(https://github.com/MannLabs/alphapeptdeep), Apache License 2.0, Mann lab. The
+models themselves aren't included; users download them from that project.
+
+Packages also include IBM Plex (SIL Open Font License) and THIRD-PARTY-LICENSES,
+which lists every other crate in the binaries.
+
+Tuffold is not affiliated with or endorsed by Proteome Software or Thermo
+Fisher Scientific. Scaffold and Proteome Discoverer are their trademarks.

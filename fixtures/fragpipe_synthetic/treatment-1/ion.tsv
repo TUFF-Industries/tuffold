@@ -1,0 +1,3 @@
+Peptide Sequence	Modified Sequence	Prev AA	Next AA	Peptide Length	M/Z	Charge	Observed Mass	Probability	Expectation	Spectral Count	Intensity	Assigned Modifications	Observed Modifications	Protein	Protein ID	Entry Name	Gene	Protein Description	Mapped Genes	Mapped Proteins
+PEPTIDEK		K	A	8	472.7492	2	944.4911	0.998	0.0001	1	15678.9			sp|P00001|P1_HUMAN Protein one	P00001	P1_HUMAN	P1	Protein one OS=Homo sapiens OX=9606		
+ANOTHERPEP		K	A	10	579.8254	2	1158.6411	0.991	0.0012	1	6789.0			sp|P00003|P3_HUMAN Protein three	P00003	P3_HUMAN	P3	Protein three OS=Homo sapiens OX=9606		
