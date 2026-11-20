@@ -93,7 +93,8 @@ fn text(value: impl Into<SharedString>) -> AnyElement {
     div().truncate().child(value.into()).into_any_element()
 }
 
-fn mono(value: impl Into<SharedString>) -> AnyElement {
+/// Peptide sequences: monospaced so residues line up down the column.
+fn sequence(value: impl Into<SharedString>) -> AnyElement {
     div()
         .font_family(MONO)
         .truncate()
@@ -101,12 +102,12 @@ fn mono(value: impl Into<SharedString>) -> AnyElement {
         .into_any_element()
 }
 
+/// Right-aligned; Plex Sans figures are tabular, so digits line up.
 fn number(value: impl Into<SharedString>) -> AnyElement {
     div()
         .w_full()
         .flex()
         .justify_end()
-        .font_family(MONO)
         .child(value.into())
         .into_any_element()
 }
@@ -299,8 +300,8 @@ impl TableDelegate for ProteinTable {
             return div().into_any_element();
         };
         match (self.layout, col_ix) {
-            (_, 0) if row.starred => mono(format!("★ {}", row.accession)),
-            (_, 0) => mono(row.accession.clone()),
+            (_, 0) if row.starred => text(format!("★ {}", row.accession)),
+            (_, 0) => text(row.accession.clone()),
             (_, 1) => text(row.description.clone().unwrap_or_default()),
             (ProteinLayout::List, 2) => number(row.peptides.to_string()),
             (ProteinLayout::List, 3) => number(group_digits(row.spectra)),
@@ -320,14 +321,9 @@ impl TableDelegate for ProteinTable {
                     .flex()
                     .items_center()
                     .justify_end()
-                    .rounded(px(3.))
-                    .bg(palette.signal.opacity(0.06 + 0.5 * heat.sqrt()))
-                    .font_family(MONO)
-                    .text_color(if heat > 0.45 {
-                        palette.on_signal
-                    } else {
-                        palette.ink
-                    })
+                    .rounded(px(2.))
+                    .bg(palette.stain_density(heat.sqrt()))
+                    .text_color(palette.ink)
                     .child(measure_text(self.measure, value))
                     .into_any_element()
             }
@@ -438,7 +434,7 @@ impl TableDelegate for PeptideTable {
             return div().into_any_element();
         };
         match col_ix {
-            0 => mono(
+            0 => sequence(
                 row.localized_peptide
                     .as_ref()
                     .unwrap_or(&row.proforma)
@@ -455,8 +451,7 @@ impl TableDelegate for PeptideTable {
                 div()
                     .w_full()
                     .truncate()
-                    .font_family(MONO)
-                    .text_size(px(11.))
+                    .text_size(px(12.))
                     .text_color(color)
                     .child(text)
                     .into_any_element()
@@ -576,8 +571,8 @@ impl TableDelegate for SpectrumTable {
         };
         let palette = *cx.global::<Palette>();
         let cell = match col_ix {
-            0 => mono(row.run.clone()),
-            1 => mono(row.key.clone()),
+            0 => text(row.run.clone()),
+            1 => text(row.key.clone()),
             2 => number(row.charge.map_or_else(String::new, |z| format!("{z}+"))),
             3 => number(
                 row.precursor_mz

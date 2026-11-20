@@ -9,7 +9,7 @@ use gpui_kit::{
 use tuffold_core::fragments::IonSeries;
 
 use crate::browse::{CoverageLine, LadderStep, SpectrumPlot};
-use crate::theme::{MONO, Palette};
+use crate::theme::{MONO, Palette, SANS};
 
 const PLOT_HEIGHT: f32 = 230.;
 /// Labels closer than this (fraction of the width) to a taller one are hidden.
@@ -90,7 +90,6 @@ pub fn spectrum_plot_view(plot: &SpectrumPlot, palette: &Palette) -> Div {
             .left(relative(x_of(peak.mz)))
             .top(px(PLOT_HEIGHT * top - 16.))
             .ml(px(-10.))
-            .font_family(MONO)
             .text_size(px(11.))
             .font_weight(FontWeight::MEDIUM)
             .text_color(ion_color(*series, palette))
@@ -102,7 +101,6 @@ pub fn spectrum_plot_view(plot: &SpectrumPlot, palette: &Palette) -> Div {
             .left(relative(x_of(tick)))
             .top(px(PLOT_HEIGHT + 4.))
             .ml(px(-14.))
-            .font_family(MONO)
             .text_size(px(11.))
             .text_color(palette.ink_faint)
             .child(format!("{tick:.0}"))
@@ -148,53 +146,91 @@ pub fn spectrum_plot_view(plot: &SpectrumPlot, palette: &Palette) -> Div {
         .children(tick_labels)
 }
 
-/// The peptide with b ions marked above the cleavage and y ions below.
+/// How big a fragment ladder is drawn: the spectrum's ladder, or the
+/// wordmark on the empty state.
+#[derive(Debug, Clone, Copy)]
+pub struct LadderScale {
+    pub letter: f32,
+    pub cell: f32,
+    pub gap: f32,
+    pub tick: f32,
+    pub stroke: f32,
+}
+
+impl LadderScale {
+    pub const SPECTRUM: Self = Self {
+        letter: 16.,
+        cell: 18.,
+        gap: 10.,
+        tick: 10.,
+        stroke: 2.,
+    };
+}
+
+/// One bond's fragment marks, drawn as in a fragment map: a matched b ion is
+/// a hook above the bond whose foot points back to the N-terminus (┐), a
+/// matched y ion a hook below pointing on to the C-terminus (└). Bonds with
+/// no matched ion keep a faint tick, so gaps in the series read as gaps.
+pub fn cleavage_marks(b: bool, y: bool, scale: LadderScale, palette: &Palette) -> Div {
+    let foot = (scale.gap * 0.5 + scale.stroke).round();
+    let hook = |matched: bool, color: Hsla, above: bool| {
+        let stem = div()
+            .relative()
+            .w(px(scale.stroke))
+            .h(px(scale.tick))
+            .bg(if matched { color } else { palette.rule });
+        if !matched {
+            return stem;
+        }
+        let bar = div().absolute().h(px(scale.stroke)).w(px(foot)).bg(color);
+        stem.child(if above {
+            bar.top_0().right_0()
+        } else {
+            bar.bottom_0().left_0()
+        })
+    };
+    div()
+        .w(px(scale.gap))
+        .flex_none()
+        .flex()
+        .flex_col()
+        .items_center()
+        .justify_between()
+        .h(px(scale.letter * 1.25 + scale.tick * 2.0))
+        .child(hook(b, palette.ion_b, true))
+        .child(hook(y, palette.ion_y, false))
+}
+
+/// The peptide with its fragment marks: b ions above each bond, y below.
 pub fn ladder_view(steps: &[LadderStep], palette: &Palette) -> Div {
+    let scale = LadderScale::SPECTRUM;
     let cells = steps.iter().enumerate().flat_map(|(index, step)| {
         let mut residue = div()
-            .w(px(18.))
+            .w(px(scale.cell))
             .flex()
             .justify_center()
-            .rounded(px(3.))
+            .rounded(px(2.))
             .font_family(MONO)
-            .text_size(px(16.))
-            .font_weight(if step.localized {
-                FontWeight::BOLD
-            } else if step.modified {
-                FontWeight::SEMIBOLD
+            .text_size(px(scale.letter))
+            .font_weight(if step.localized || step.modified {
+                FontWeight::MEDIUM
             } else {
                 FontWeight::NORMAL
             })
             .text_color(if step.modified {
-                palette.signal
+                palette.stain
             } else {
                 palette.ink
             })
             .child(step.residue.to_string());
         if step.localized {
             residue = residue
-                .bg(palette.signal_soft)
-                .border_1()
-                .border_color(palette.signal);
+                .bg(palette.stain_soft)
+                .border_b_2()
+                .border_color(palette.stain);
         }
         let last = index + 1 == steps.len();
-        let mark = |on: bool, color: Hsla| {
-            div()
-                .w(px(2.))
-                .h(px(10.))
-                .bg(if on { color } else { palette.rule })
-        };
-        let cleavage = (!last).then(|| {
-            div()
-                .w(px(8.))
-                .flex()
-                .flex_col()
-                .items_center()
-                .justify_between()
-                .h(px(28.))
-                .child(mark(step.b, palette.ion_b))
-                .child(mark(step.y, palette.ion_y))
-        });
+        let cleavage = (!last).then(|| cleavage_marks(step.b, step.y, scale, palette));
         std::iter::once(residue.into_any_element()).chain(cleavage.map(|c| c.into_any_element()))
     });
     div().flex().items_center().children(cells)
@@ -219,6 +255,7 @@ pub fn coverage_view(lines: &[CoverageLine], palette: &Palette) -> Div {
                     .w(px(34.))
                     .flex()
                     .justify_end()
+                    .font_family(SANS)
                     .text_color(palette.ink_faint)
                     .child(line.start.to_string()),
             )
@@ -228,7 +265,7 @@ pub fn coverage_view(lines: &[CoverageLine], palette: &Palette) -> Div {
                     .children(runs.into_iter().map(|(covered, text)| {
                         if covered {
                             div()
-                                .bg(palette.signal_soft)
+                                .bg(palette.stain_soft)
                                 .text_color(palette.ink)
                                 .font_weight(FontWeight::MEDIUM)
                                 .child(text)

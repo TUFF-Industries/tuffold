@@ -7,9 +7,9 @@ use gpui_kit::{
 };
 use tuffold_quant::qc::{MIN_GROUPS, MIN_PCA_SAMPLES, Pca, SampleQc};
 
-use super::{group_digits, panel_shell, panel_title};
+use super::{group_digits, plate, section, section_title};
 use crate::quant::QcShown;
-use crate::theme::{MONO, Palette};
+use crate::theme::Palette;
 
 const PCA_HEIGHT: f32 = 300.;
 const CELL_MAX: f32 = 34.;
@@ -22,8 +22,6 @@ const LABEL_WIDTH: f32 = 96.;
 const LABEL_HEIGHT: f32 = 14.;
 /// Labels nearer than this share of the plot's width could overlap.
 const LABEL_SHARE: f32 = 0.2;
-/// Above this share of the colour scale, a cell takes light-on-strong text.
-const STRONG_CELL: f64 = 0.6;
 
 pub(super) fn qc_body(shown: &QcShown, palette: &Palette) -> Div {
     let qc = &shown.qc;
@@ -36,7 +34,7 @@ pub(super) fn qc_body(shown: &QcShown, palette: &Palette) -> Div {
                 .text_size(px(12.))
                 .text_color(palette.ink_muted)
                 .child(format!(
-                    "{} samples · {} protein groups · {}",
+                    "{} samples, {} protein groups, {}",
                     qc.samples.len(),
                     group_digits(qc.groups),
                     shown.values
@@ -47,32 +45,28 @@ pub(super) fn qc_body(shown: &QcShown, palette: &Palette) -> Div {
                 .flex()
                 .gap_4()
                 .child(
-                    panel_shell(palette)
+                    plate(palette)
                         .flex_1()
                         .min_w_0()
-                        .child(panel_title("PCA"))
+                        .child(section_title("PCA", None, palette))
                         .child(pca_view(qc, palette)),
                 )
                 .child(
-                    panel_shell(palette)
+                    plate(palette)
                         .flex_1()
                         .min_w_0()
-                        .child(panel_title("Correlation"))
+                        .child(section_title("Correlation", None, palette))
                         .child(correlation_view(qc, palette)),
                 ),
         )
-        .child(
-            panel_shell(palette)
-                .child(panel_title("Samples"))
-                .child(sample_rows(qc, palette)),
-        )
+        .child(section("Samples", palette).child(sample_rows(qc, palette)))
 }
 
 /// A colour per category, in first-seen order; uncategorized samples are
 /// the axis grey.
 fn category_colors(qc: &SampleQc, palette: &Palette) -> Vec<(Option<String>, Hsla)> {
     let series = [
-        palette.signal,
+        palette.stain,
         palette.ion_y,
         palette.ok,
         palette.caution,
@@ -133,7 +127,6 @@ fn pca_view(qc: &SampleQc, palette: &Palette) -> Div {
                     .left(relative(x_of(x)))
                     .top(px(top))
                     .ml(px(8.))
-                    .font_family(MONO)
                     .text_size(px(10.))
                     .text_color(palette.ink_muted)
                     .child(sample.name.clone())
@@ -142,7 +135,6 @@ fn pca_view(qc: &SampleQc, palette: &Palette) -> Div {
     let axis = palette.rule_strong;
     let caption = |text: String| {
         div()
-            .font_family(MONO)
             .text_size(px(11.))
             .text_color(palette.ink_faint)
             .child(text)
@@ -213,7 +205,7 @@ fn pca_view(qc: &SampleQc, palette: &Palette) -> Div {
                 .items_center()
                 .gap_3()
                 .child(caption(format!(
-                    "PC1 {:.1}% · PC2 {:.1}% · {} groups in every sample",
+                    "PC1 {:.1}%, PC2 {:.1}%; {} groups in every sample",
                     pca.explained[0] * 100.0,
                     pca.explained[1] * 100.0,
                     group_digits(pca.groups)
@@ -295,7 +287,6 @@ fn correlation_view(qc: &SampleQc, palette: &Palette) -> Div {
             .w(px(width))
             .flex_none()
             .truncate()
-            .font_family(MONO)
             .text_size(px(10.))
             .text_color(palette.ink_muted)
             .child(name.to_string())
@@ -311,7 +302,6 @@ fn correlation_view(qc: &SampleQc, palette: &Palette) -> Div {
                     .min_w_0()
                     .truncate()
                     .text_center()
-                    .font_family(MONO)
                     .text_size(px(10.))
                     .text_color(palette.ink_muted)
                     .child(sample.name.clone())
@@ -328,11 +318,7 @@ fn correlation_view(qc: &SampleQc, palette: &Palette) -> Div {
                 let r = if a == b { None } else { *r };
                 let share = r.map(|r| ((r - lowest) / span).clamp(0.0, 1.0));
                 let background = share.map_or(palette.paper_sunken, |t| palette.heat(t, 1.0));
-                let text = if share.is_some_and(|t| t > STRONG_CELL) {
-                    palette.on_signal
-                } else {
-                    palette.ink
-                };
+                let text = palette.text_on(background);
                 let shown = match r {
                     Some(r) => format!("{r:.3}"),
                     None if a == b => String::new(),
@@ -346,7 +332,6 @@ fn correlation_view(qc: &SampleQc, palette: &Palette) -> Div {
                     .items_center()
                     .justify_center()
                     .bg(background)
-                    .font_family(MONO)
                     .text_size(px(10.))
                     .text_color(text)
                     .children(with_text.then_some(shown))
@@ -367,7 +352,6 @@ fn correlation_view(qc: &SampleQc, palette: &Palette) -> Div {
         .children((n >= 2 && lowest <= highest).then(|| {
             div()
                 .mt_2()
-                .font_family(MONO)
                 .text_size(px(11.))
                 .text_color(palette.ink_faint)
                 .child(format!("Pearson r, {lowest:.3} to {highest:.3}"))
@@ -382,7 +366,6 @@ fn sample_rows(qc: &SampleQc, palette: &Palette) -> Div {
             .flex()
             .items_center()
             .gap_3()
-            .font_family(MONO)
             .text_size(px(12.))
             .text_color(color)
             .child(div().flex_1().min_w_0().truncate().child(name))

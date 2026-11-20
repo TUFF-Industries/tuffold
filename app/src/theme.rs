@@ -1,7 +1,11 @@
-//! Design tokens. Direction: an instrument panel printed on lab paper — warm
-//! paper surfaces, ink typography, one instrument-blue signal color, and
-//! semantic ok / caution / fault colors that only ever mean data state. Blue
-//! fill is for real actions; a choice is a selected ghost button.
+//! Design tokens. Direction: colour only ever means data. The chrome is
+//! graphite ink on a cool acrylamide-white (gel, not paper), so the colours
+//! that remain carry meaning: the fragment-ion pair (b in Coomassie blue, y in
+//! carmine) that also stains every quantity (heat maps, coverage, bars), and
+//! ok / caution / fault for data state. Real actions are ink-filled; a choice
+//! is a selected ghost button. Plex Sans sets everything, its default figures
+//! are tabular so numbers align without a monospace; Plex Mono is reserved for
+//! amino-acid sequences, where residues must line up.
 //!
 //! Tokens are authored in OKLCH (perceptually even steps across themes) and
 //! converted once to GPUI colors. The palette follows the system appearance
@@ -53,11 +57,17 @@ pub struct Palette {
     pub ink_faint: Hsla,
     pub rule: Hsla,
     pub rule_strong: Hsla,
+    /// Interface emphasis (primary buttons, focus, selection marks): ink, not
+    /// a hue, so it never competes with the data colours.
     pub signal: Hsla,
     pub signal_hover: Hsla,
-    /// Selection and highlight backgrounds (selected table rows, coverage).
+    /// Selected rows and notices.
     pub signal_soft: Hsla,
     pub on_signal: Hsla,
+    /// Data emphasis, Coomassie blue: quantities (heat maps, bars, coverage),
+    /// modified residues, "up" in comparisons. Same hue as the b ions.
+    pub stain: Hsla,
+    pub stain_soft: Hsla,
     /// Annotated b and y fragment ions in spectra (data series, not state).
     pub ion_b: Hsla,
     pub ion_y: Hsla,
@@ -74,6 +84,11 @@ pub struct Palette {
 }
 
 impl Global for Palette {}
+
+/// Coomassie blue (the b ions, the stain on quantities) and carmine (the y
+/// ions, "down"), as OKLCH hues.
+const STAIN_HUE: f32 = 272.0;
+const CARMINE_HUE: f32 = 358.0;
 
 /// z-scores at or beyond this take the heat map's end colours.
 pub const HEAT_CLAMP: f64 = 2.5;
@@ -92,63 +107,111 @@ impl Palette {
     pub fn heat(&self, z: f64, clamp: f64) -> Hsla {
         let t = (z.abs() / clamp).min(1.0) as f32;
         let lightness = self.heat_mid + (self.heat_end - self.heat_mid) * t;
-        let hue = if z >= 0.0 { 263.0 } else { 350.0 };
+        let hue = if z >= 0.0 { STAIN_HUE } else { CARMINE_HUE };
         oklch(lightness, 0.19 * t, hue)
     }
 
+    /// A quantity's cell colour, like stain density on a gel: from barely
+    /// tinted to mid Coomassie at `t` = 1, never so dark that ink text on it
+    /// stops being readable.
+    pub fn stain_density(&self, t: f32) -> Hsla {
+        let t = t.clamp(0.0, 1.0);
+        let (from, to) = if self.paper.l > 0.5 {
+            (97.0, 70.0)
+        } else {
+            (24.0, 44.0)
+        };
+        oklch(from + (to - from) * t, 0.13 * t, STAIN_HUE)
+    }
+
+    /// Ink or paper, whichever reads better on `background` (a heat cell).
+    pub fn text_on(&self, background: Hsla) -> Hsla {
+        let dark_ink = contrast(self.ink, background) >= contrast(self.paper_raised, background);
+        if dark_ink {
+            self.ink
+        } else {
+            self.paper_raised
+        }
+    }
+
     pub fn light() -> Self {
+        let stain = oklch(45.0, 0.2, STAIN_HUE);
         Self {
-            paper: oklch(97.6, 0.007, 85.0),
-            paper_raised: oklch(99.4, 0.003, 85.0),
-            paper_sunken: oklch(95.0, 0.009, 85.0),
-            ink: oklch(22.0, 0.014, 262.0),
-            ink_muted: oklch(46.0, 0.016, 262.0),
-            ink_faint: oklch(64.0, 0.012, 262.0),
-            rule: oklch(89.0, 0.009, 85.0),
-            rule_strong: oklch(79.0, 0.012, 85.0),
-            signal: oklch(52.0, 0.2, 263.0),
-            signal_hover: oklch(46.0, 0.2, 263.0),
-            signal_soft: oklch(93.0, 0.035, 263.0),
-            on_signal: oklch(99.0, 0.005, 263.0),
-            ion_b: oklch(52.0, 0.2, 263.0),
-            ion_y: oklch(55.0, 0.2, 350.0),
+            paper: oklch(97.8, 0.004, 230.0),
+            paper_raised: oklch(99.7, 0.002, 230.0),
+            paper_sunken: oklch(94.8, 0.006, 235.0),
+            ink: oklch(23.0, 0.02, 255.0),
+            ink_muted: oklch(45.0, 0.018, 255.0),
+            ink_faint: oklch(52.0, 0.014, 255.0),
+            rule: oklch(90.5, 0.006, 240.0),
+            rule_strong: oklch(80.0, 0.01, 245.0),
+            signal: oklch(25.0, 0.02, 255.0),
+            signal_hover: oklch(35.0, 0.022, 255.0),
+            signal_soft: oklch(92.0, 0.012, 250.0),
+            on_signal: oklch(98.5, 0.003, 230.0),
+            stain,
+            stain_soft: oklch(92.5, 0.04, STAIN_HUE),
+            ion_b: stain,
+            ion_y: oklch(54.0, 0.21, CARMINE_HUE),
             ok: oklch(52.0, 0.12, 158.0),
             ok_soft: oklch(94.5, 0.04, 158.0),
-            caution: oklch(52.0, 0.12, 68.0),
-            caution_soft: oklch(95.0, 0.055, 85.0),
+            caution: oklch(52.0, 0.12, 70.0),
+            caution_soft: oklch(95.0, 0.05, 88.0),
             fault: oklch(52.0, 0.19, 28.0),
             fault_soft: oklch(95.0, 0.03, 28.0),
-            heat_mid: 95.0,
-            heat_end: 50.0,
+            heat_mid: 96.0,
+            heat_end: 48.0,
         }
     }
 
     pub fn dark() -> Self {
+        let stain = oklch(71.0, 0.15, STAIN_HUE);
         Self {
-            paper: oklch(17.5, 0.012, 262.0),
-            paper_raised: oklch(21.0, 0.014, 262.0),
-            paper_sunken: oklch(15.0, 0.011, 262.0),
-            ink: oklch(93.0, 0.008, 85.0),
-            ink_muted: oklch(74.0, 0.012, 85.0),
-            ink_faint: oklch(56.0, 0.012, 262.0),
-            rule: oklch(28.0, 0.014, 262.0),
-            rule_strong: oklch(38.0, 0.016, 262.0),
-            signal: oklch(70.0, 0.15, 263.0),
-            signal_hover: oklch(76.0, 0.13, 263.0),
-            signal_soft: oklch(30.0, 0.07, 263.0),
-            on_signal: oklch(16.0, 0.03, 263.0),
-            ion_b: oklch(72.0, 0.14, 263.0),
-            ion_y: oklch(73.0, 0.15, 350.0),
+            paper: oklch(18.0, 0.008, 250.0),
+            paper_raised: oklch(21.5, 0.009, 250.0),
+            paper_sunken: oklch(15.5, 0.008, 250.0),
+            ink: oklch(93.5, 0.005, 230.0),
+            ink_muted: oklch(75.0, 0.01, 240.0),
+            ink_faint: oklch(61.0, 0.012, 245.0),
+            rule: oklch(28.5, 0.01, 250.0),
+            rule_strong: oklch(38.0, 0.012, 250.0),
+            signal: oklch(91.0, 0.006, 230.0),
+            signal_hover: oklch(83.0, 0.008, 230.0),
+            signal_soft: oklch(30.0, 0.014, 250.0),
+            on_signal: oklch(18.0, 0.008, 250.0),
+            stain,
+            stain_soft: oklch(30.0, 0.07, STAIN_HUE),
+            ion_b: stain,
+            ion_y: oklch(72.0, 0.17, CARMINE_HUE),
             ok: oklch(75.0, 0.13, 158.0),
             ok_soft: oklch(28.0, 0.05, 158.0),
             caution: oklch(80.0, 0.13, 80.0),
             caution_soft: oklch(29.0, 0.05, 75.0),
             fault: oklch(72.0, 0.16, 28.0),
             fault_soft: oklch(29.0, 0.06, 28.0),
-            heat_mid: 26.0,
-            heat_end: 72.0,
+            heat_mid: 25.0,
+            heat_end: 70.0,
         }
     }
+}
+
+/// WCAG relative luminance.
+fn luminance(color: Hsla) -> f32 {
+    let rgba = color.to_rgb();
+    let linear = |channel: f32| {
+        if channel <= 0.040_45 {
+            channel / 12.92
+        } else {
+            ((channel + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * linear(rgba.r) + 0.7152 * linear(rgba.g) + 0.0722 * linear(rgba.b)
+}
+
+/// WCAG contrast ratio between two colours (1 to 21).
+fn contrast(a: Hsla, b: Hsla) -> f32 {
+    let (a, b) = (luminance(a), luminance(b));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
 }
 
 /// Register the bundled IBM Plex fonts (SIL OFL 1.1, see assets/fonts/OFL.txt).
@@ -215,7 +278,7 @@ pub fn apply(mode: ThemeMode, cx: &mut App) {
         colors.table_head_foreground = palette.ink_muted;
         colors.table_hover = palette.paper_sunken;
         colors.table_active = palette.signal_soft;
-        colors.table_active_border = palette.signal;
+        colors.table_active_border = palette.ink_faint;
         colors.table_row_border = palette.rule;
         colors.scrollbar_thumb = palette.rule_strong;
     });
@@ -243,6 +306,30 @@ mod tests {
     }
 
     #[test]
+    fn heat_cells_take_the_more_readable_text() {
+        // Mid-ramp cells (OKLCH L near 60) sit between ink and paper, so no
+        // text reaches 4.5:1 there; 3:1 is the floor anywhere on the ramp.
+        for palette in [Palette::light(), Palette::dark()] {
+            for step in 0..=20 {
+                let t = f64::from(step) / 20.0;
+                for z in [t, -t] {
+                    let background = palette.heat(z, 1.0);
+                    let text = palette.text_on(background);
+                    assert!(
+                        contrast(text, background) >= 3.0,
+                        "z {z}: contrast {}",
+                        contrast(text, background)
+                    );
+                }
+            }
+            for step in 0..=20 {
+                let background = palette.stain_density(step as f32 / 20.0);
+                assert!(contrast(palette.ink, background) >= 4.5);
+            }
+        }
+    }
+
+    #[test]
     fn oklch_matches_reference_srgb_values() {
         assert_eq!(rgb(oklch(100.0, 0.0, 0.0)), [255, 255, 255]);
         assert_eq!(rgb(oklch(0.0, 0.0, 0.0)), [0, 0, 0]);
@@ -253,10 +340,10 @@ mod tests {
     }
 
     #[test]
-    fn signal_is_blue_and_paper_is_light_in_the_light_theme() {
+    fn stain_is_blue_and_paper_is_light_in_the_light_theme() {
         let palette = Palette::light();
-        let [r, g, b] = rgb(palette.signal);
-        assert!(b > r && b > g, "signal should read blue: {r},{g},{b}");
+        let [r, g, b] = rgb(palette.stain);
+        assert!(b > r && b > g, "stain should read blue: {r},{g},{b}");
         assert!(palette.paper.l > 0.9);
         assert!(Palette::dark().paper.l < 0.2);
     }

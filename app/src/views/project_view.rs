@@ -1,9 +1,12 @@
 use gpui_kit::{Div, FontWeight, Hsla, IntoElement, ParentElement, Styled, div, px, relative};
 
 use super::validation_panel::{ValidationControls, validation_panel};
-use super::{callout, eyebrow, group_digits, panel, panel_shell, panel_title};
+use super::{
+    callout, fact, facts, group_digits, section, section_header, section_shell, section_title,
+    subsection_title,
+};
 use crate::project::{Finding, FindingLevel, ProjectReport, StatusKind};
-use crate::theme::{MONO, Palette};
+use crate::theme::Palette;
 
 pub fn project_view(
     report: &ProjectReport,
@@ -25,15 +28,15 @@ pub fn project_view(
         .children(validation_panel(&report.validation, controls, palette))
         .child(
             div()
-                .mt_6()
+                .mt(px(48.))
                 .flex()
                 .items_start()
-                .gap_6()
+                .gap(px(48.))
                 .child(
                     div()
                         .flex()
                         .flex_col()
-                        .gap_6()
+                        .gap(px(40.))
                         .flex_basis(relative(0.5))
                         .min_w_0()
                         .child(imports_panel(report, palette))
@@ -60,45 +63,46 @@ fn header(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
         .flex()
         .items_center()
         .gap_2()
-        .pb_4()
-        .text_size(px(12.))
+        .pb_3()
+        .text_size(px(13.))
+        .font_weight(FontWeight::MEDIUM)
         .text_color(color)
         .child(div().size(px(6.)).rounded_full().bg(color))
         .child(status.label)
 }
 
-/// What's in the project, as a line: the validation below is the headline.
+/// What's in the project, as a row of counts: the validation below is the
+/// headline.
 fn stat_strip(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
     let summary = &report.summary;
     let count = group_digits;
-    let line = [
-        format!(
-            "{} PSMs ({} decoy)",
-            count(summary.psms),
-            count(summary.decoy_psms)
-        ),
-        format!("{} peptides", count(summary.peptides)),
-        format!(
-            "{} proteins ({} decoy, {} with sequences)",
-            count(summary.proteins),
-            count(summary.decoy_proteins),
-            count(summary.proteins_with_sequence)
-        ),
-        format!("{} spectra", count(summary.spectra)),
-        format!("{} MS runs", count(summary.ms_runs)),
-    ]
-    .join(" · ");
-    div()
-        .pb_6()
-        .font_family(MONO)
-        .text_size(px(12.))
-        .text_color(palette.ink_muted)
-        .child(line)
+    let of_which = |text: String| {
+        div()
+            .text_color(palette.ink_faint)
+            .child(format!("({text})"))
+    };
+    facts()
+        .pb(px(40.))
+        .text_size(px(13.))
+        .child(
+            fact(count(summary.psms), "PSMs", palette)
+                .child(of_which(format!("{} decoy", count(summary.decoy_psms)))),
+        )
+        .child(fact(count(summary.peptides), "peptides", palette))
+        .child(
+            fact(count(summary.proteins), "proteins", palette).child(of_which(format!(
+                "{} decoy, {} with sequences",
+                count(summary.decoy_proteins),
+                count(summary.proteins_with_sequence)
+            ))),
+        )
+        .child(fact(count(summary.spectra), "spectra", palette))
+        .child(fact(count(summary.ms_runs), "MS runs", palette))
 }
 
 fn imports_panel(report: &ProjectReport, palette: &Palette) -> Div {
     if report.imports.is_empty() {
-        return panel("Imports", palette).child(
+        return section("Imports", palette).child(
             div()
                 .text_size(px(13.))
                 .text_color(palette.ink_muted)
@@ -124,37 +128,28 @@ fn imports_panel(report: &ProjectReport, palette: &Palette) -> Div {
                 div()
                     .flex_1()
                     .min_w_0()
-                    .font_family(MONO)
-                    .truncate()
-                    .child(file),
+                    .flex()
+                    .flex_col()
+                    .child(div().font_weight(FontWeight::MEDIUM).truncate().child(file))
+                    .child(
+                        div()
+                            .text_size(px(12.))
+                            .text_color(palette.ink_faint)
+                            .truncate()
+                            .child(format!("{}, {}", record.software, record.format)),
+                    ),
             )
             .child(
                 div()
-                    .px_2()
-                    .rounded(px(3.))
-                    .bg(palette.paper_sunken)
-                    .font_family(MONO)
-                    .text_size(px(11.))
-                    .text_color(palette.ink_muted)
-                    .child(record.format.clone()),
-            )
-            .child(
-                div()
-                    .w(px(140.))
-                    .truncate()
-                    .text_color(palette.ink_muted)
-                    .child(record.software.clone()),
-            )
-            .child(
-                div()
-                    .w(px(64.))
+                    .w(px(96.))
                     .flex()
                     .justify_end()
-                    .font_family(MONO)
-                    .child(group_digits(record.psms)),
+                    .gap_1()
+                    .child(group_digits(record.psms))
+                    .child(div().text_color(palette.ink_faint).child("PSMs")),
             )
     });
-    panel("Imports", palette).child(div().flex().flex_col().children(rows))
+    section("Imports", palette).child(div().flex().flex_col().children(rows))
 }
 
 fn runs_panel(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
@@ -179,7 +174,6 @@ fn runs_panel(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
                     .min_w_0()
                     .child(
                         div()
-                            .font_family(MONO)
                             .text_color(label_color)
                             .truncate()
                             .child(run.name.clone()),
@@ -195,14 +189,13 @@ fn runs_panel(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
             .child(
                 div()
                     .flex_1()
-                    .h(px(8.))
-                    .rounded_full()
-                    .bg(palette.paper_sunken)
+                    .h(px(6.))
+                    .border_l_1()
+                    .border_color(palette.rule_strong)
                     .child(
                         div()
                             .h_full()
-                            .rounded_full()
-                            .bg(palette.signal)
+                            .bg(palette.stain)
                             .w(relative(run.psms as f32 / max as f32)),
                     ),
             )
@@ -211,23 +204,14 @@ fn runs_panel(report: &ProjectReport, palette: &Palette) -> impl IntoElement {
                     .w(px(56.))
                     .flex()
                     .justify_end()
-                    .font_family(MONO)
                     .text_color(label_color)
                     .child(group_digits(run.psms)),
             )
     });
-    panel("PSMs per MS run", palette).child(div().flex().flex_col().gap_3().children(bars))
+    section("PSMs per MS run", palette).child(div().flex().flex_col().gap_3().children(bars))
 }
 
 fn findings_panel(findings: &[Finding], palette: &Palette) -> impl IntoElement {
-    let count = div()
-        .px_2()
-        .rounded(px(3.))
-        .bg(palette.paper_sunken)
-        .font_family(MONO)
-        .text_size(px(11.))
-        .text_color(palette.ink_muted)
-        .child(findings.len().to_string());
     let group = |level: FindingLevel, title: &'static str, color: Hsla, background: Hsla| {
         let items: Vec<&Finding> = findings.iter().filter(|f| f.level == level).collect();
         (!items.is_empty()).then(|| {
@@ -235,37 +219,43 @@ fn findings_panel(findings: &[Finding], palette: &Palette) -> impl IntoElement {
                 .flex()
                 .flex_col()
                 .gap_2()
-                .child(eyebrow(title, palette))
+                .child(subsection_title(title, palette))
                 .children(items.into_iter().map(move |finding| {
-                    let heading = match &finding.code {
-                        Some(code) => format!("{} · {code}", finding.source),
-                        None => finding.source.clone(),
-                    };
                     callout(color, background)
                         .flex()
                         .flex_col()
                         .gap_1()
                         .child(
                             div()
-                                .font_family(MONO)
-                                .text_size(px(11.))
-                                .font_weight(FontWeight::MEDIUM)
-                                .text_color(color)
-                                .child(heading),
+                                .flex()
+                                .items_baseline()
+                                .gap_2()
+                                .text_size(px(13.))
+                                .child(
+                                    div()
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(color)
+                                        .child(finding.source.clone()),
+                                )
+                                .children(finding.code.clone().map(|code| {
+                                    div()
+                                        .text_size(px(12.))
+                                        .text_color(palette.ink_muted)
+                                        .child(code)
+                                })),
                         )
-                        .child(div().text_size(px(13.)).child(finding.message.clone()))
+                        .child(
+                            div()
+                                .text_size(px(13.))
+                                .line_height(px(20.))
+                                .child(finding.message.clone()),
+                        )
                 }))
         })
     };
-    panel_shell(palette)
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .gap_2()
-                .child(panel_title("Findings"))
-                .child(count),
-        )
+    let count = (!findings.is_empty()).then(|| findings.len().to_string().into());
+    section_shell()
+        .child(section_header(palette).child(section_title("Findings", count, palette)))
         .children(findings.is_empty().then(|| {
             div()
                 .text_size(px(13.))

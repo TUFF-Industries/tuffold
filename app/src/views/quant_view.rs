@@ -23,14 +23,17 @@ use tuffold_quant::{Comparison, PrimaryTest};
 
 use super::qc_view::qc_body;
 use super::tables::{Compare, Sortable, sort_later};
-use super::{callout, group_digits, panel_shell, panel_title, track};
+use super::{
+    callout, group_digits, plate, section_header, section_shell, section_title, subsection_title,
+    track,
+};
 use crate::quant::{
     self, AllShown, Certificate, CompareRow, Export, Method, QcShown, QuantData, SIGNIFICANCE,
     Scope, Shown, Volcano, ms1_status, plex_title, reporter_reagent_hint, reporter_status,
     shown_all, shown_counts, shown_intensity, shown_qc, shown_reporters, volcano,
 };
 use crate::sorted::{SortedRows, missing_last, natural};
-use crate::theme::{MONO, Palette};
+use crate::theme::Palette;
 use tuffold_core::reporter::Plex;
 use tuffold_quant::anova::AnovaRow;
 use tuffold_quant::heatmap::Heatmap;
@@ -51,7 +54,6 @@ fn number(value: String) -> AnyElement {
         .w_full()
         .flex()
         .justify_end()
-        .font_family(MONO)
         .child(value)
         .into_any_element()
 }
@@ -131,7 +133,6 @@ impl TableDelegate for ComparisonTable {
         let q = row.q;
         match col_ix {
             0 => div()
-                .font_family(MONO)
                 .truncate()
                 .child(row.accession.clone())
                 .into_any_element(),
@@ -142,9 +143,8 @@ impl TableDelegate for ComparisonTable {
                 .w_full()
                 .flex()
                 .justify_end()
-                .font_family(MONO)
                 .text_color(if q.is_some_and(|q| q <= SIGNIFICANCE) {
-                    palette.signal
+                    palette.stain
                 } else {
                     palette.ink_muted
                 })
@@ -236,7 +236,6 @@ impl TableDelegate for AnovaTable {
         let palette = *cx.global::<Palette>();
         match col_ix {
             0 => div()
-                .font_family(MONO)
                 .truncate()
                 .child(row.accession.clone())
                 .into_any_element(),
@@ -246,9 +245,8 @@ impl TableDelegate for AnovaTable {
                 .w_full()
                 .flex()
                 .justify_end()
-                .font_family(MONO)
                 .text_color(if row.q.is_some_and(|q| q <= SIGNIFICANCE) {
-                    palette.signal
+                    palette.stain
                 } else {
                     palette.ink_muted
                 })
@@ -1404,7 +1402,6 @@ impl QuantView {
                         .child(
                             div()
                                 .w(px(38.))
-                                .font_family(MONO)
                                 .text_size(px(12.))
                                 .text_color(palette.ink_muted)
                                 .child(channel.clone()),
@@ -1431,14 +1428,10 @@ impl QuantView {
             };
             button.on_click(cx.listener(|this, _, _, cx| this.remove_plex(cx)))
         });
-        panel_shell(palette)
+        section_shell()
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .justify_between()
-                    .gap_2()
-                    .child(panel_title("Plex"))
+                section_header(palette)
+                    .child(section_title("Plex", None, palette))
                     .child(
                         div()
                             .flex()
@@ -1577,7 +1570,7 @@ impl QuantView {
                 let note = match (channel_of.get(name.as_str()), spectra) {
                     (Some(channel), 0) => channel.clone(),
                     (Some(channel), n) if self.method == Method::Reporters => {
-                        format!("{channel} · {} spectra", group_digits(n))
+                        format!("{channel}, {} spectra", group_digits(n))
                     }
                     (_, n) => format!("{} spectra", group_digits(n)),
                 };
@@ -1588,7 +1581,6 @@ impl QuantView {
                     .child(
                         div()
                             .w(px(150.))
-                            .font_family(MONO)
                             .text_size(px(13.))
                             .truncate()
                             .child(name.clone()),
@@ -1604,13 +1596,10 @@ impl QuantView {
                             .child(note),
                     )
             });
-        panel_shell(palette)
+        section_shell()
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .justify_between()
-                    .child(panel_title("Sample groups"))
+                section_header(palette)
+                    .child(section_title("Sample groups", None, palette))
                     .child(
                         Button::new("save-groups")
                             .primary()
@@ -1649,7 +1638,7 @@ fn volcano_view(volcano: &Volcano, palette: &Palette) -> Div {
         .map(|p| {
             let color = match (p.significant, p.log2_fold >= 0.0) {
                 (false, _) => palette.rule_strong,
-                (true, true) => palette.signal,
+                (true, true) => palette.stain,
                 (true, false) => palette.ion_y,
             };
             (x_of(p.log2_fold), y_of(p.height), color)
@@ -1662,7 +1651,6 @@ fn volcano_view(volcano: &Volcano, palette: &Palette) -> Div {
             .left(relative(x_of(p.log2_fold)))
             .top(px(PLOT_HEIGHT * y_of(p.height) - 18.))
             .ml(px(6.))
-            .font_family(MONO)
             .text_size(px(10.))
             .text_color(palette.ink_muted)
             .child(
@@ -1682,7 +1670,6 @@ fn volcano_view(volcano: &Volcano, palette: &Palette) -> Div {
                 .left(relative(x_of(t)))
                 .top(px(PLOT_HEIGHT + 4.))
                 .ml(px(-6.))
-                .font_family(MONO)
                 .text_size(px(11.))
                 .text_color(palette.ink_faint)
                 .child(format!("{t:.0}"))
@@ -1692,7 +1679,6 @@ fn volcano_view(volcano: &Volcano, palette: &Palette) -> Div {
             .absolute()
             .left(px(4.))
             .top(px(PLOT_HEIGHT * y_of(t) - 7.))
-            .font_family(MONO)
             .text_size(px(11.))
             .text_color(palette.ink_faint)
             .child(format!("{t:.0}"))
@@ -1702,7 +1688,6 @@ fn volcano_view(volcano: &Volcano, palette: &Palette) -> Div {
         .absolute()
         .left(relative(volcano.threshold_label_x as f32))
         .top(px(PLOT_HEIGHT * threshold_y - 16.))
-        .font_family(MONO)
         .text_size(px(10.))
         .text_color(palette.ink_faint)
         .child(format!("q = {:.0}%", SIGNIFICANCE * 100.0));
@@ -1773,7 +1758,7 @@ impl QuantView {
             .filter(|r| r.q.is_some_and(|q| q <= SIGNIFICANCE))
             .count();
         let summary = format!(
-            "{significant} of {tested} tested protein groups differ at {}% FDR ({} not testable) · \
+            "{significant} of {tested} tested protein groups differ at {}% FDR ({} not testable). \
              {}",
             SIGNIFICANCE * 100.0,
             all.anova.rows.len() - tested,
@@ -1794,15 +1779,10 @@ impl QuantView {
                     .flex()
                     .gap_4()
                     .child(
-                        panel_shell(palette)
+                        plate(palette)
                             .flex_1()
                             .min_w_0()
-                            .child(
-                                div()
-                                    .text_size(px(12.))
-                                    .text_color(palette.ink_faint)
-                                    .child(all.caption.clone()),
-                            )
+                            .child(subsection_title(all.caption.clone(), palette))
                             .child(heatmap_view(&all.heatmap, palette)),
                     )
                     .child(
@@ -1885,7 +1865,6 @@ fn heatmap_view(map: &Heatmap, palette: &Palette) -> Div {
             .top(px(height + 4.))
             .flex()
             .justify_center()
-            .font_family(MONO)
             .text_size(px(10.))
             .text_color(palette.ink_faint)
             .truncate()
@@ -1903,7 +1882,6 @@ fn heatmap_view(map: &Heatmap, palette: &Palette) -> Div {
                     .h(px(row_height))
                     .flex()
                     .items_center()
-                    .font_family(MONO)
                     .text_size(px(10.))
                     .text_color(palette.ink_muted)
                     .child(
@@ -2091,7 +2069,7 @@ impl Render for QuantView {
                         (n, Method::Counts) => format!(" ({n} not testable)"),
                     };
                     let summary = format!(
-                        "{} of {} protein groups differ at {}% FDR{untested} · {}",
+                        "{} of {} protein groups differ at {}% FDR{untested}. {}",
                         plot.significant,
                         shown.rows.len(),
                         SIGNIFICANCE * 100.0,
@@ -2113,7 +2091,7 @@ impl Render for QuantView {
                                 .flex()
                                 .gap_4()
                                 .child(
-                                    panel_shell(&palette)
+                                    plate(&palette)
                                         .flex_1()
                                         .min_w_0()
                                         .child(volcano_view(&plot, &palette)),
@@ -2126,12 +2104,7 @@ impl Render for QuantView {
                                         .flex()
                                         .flex_col()
                                         .gap_2()
-                                        .child(
-                                            div()
-                                                .text_size(px(12.))
-                                                .text_color(palette.ink_faint)
-                                                .child(shown.means),
-                                        )
+                                        .child(subsection_title(shown.means, &palette))
                                         .child(
                                             div()
                                                 .flex_1()

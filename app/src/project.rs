@@ -166,14 +166,14 @@ pub fn level_views(summary: &ValidationSummary) -> Vec<LevelView> {
             let threshold = level.threshold(thresholds);
             let mut caption = match thresholds.mode {
                 ThresholdMode::Fdr => format!(
-                    "at {} FDR · {} passing",
+                    "at {} FDR, {} passing",
                     format_rate(threshold),
                     plural(counts.decoys, "decoy", "decoys")
                 ),
                 // A probability says nothing about the error rate of the
                 // whole list; the decoys that pass do.
                 ThresholdMode::Probability => format!(
-                    "at ≥{} probability · est. FDR {} ({})",
+                    "at ≥{} probability, est. FDR {} ({})",
                     format_rate(threshold),
                     counts
                         .estimated_fdr()
@@ -182,7 +182,7 @@ pub fn level_views(summary: &ValidationSummary) -> Vec<LevelView> {
                 ),
             };
             if level == Level::ProteinGroups && thresholds.min_peptides > 1 {
-                caption.push_str(&format!(" · ≥{} peptides", thresholds.min_peptides));
+                caption.push_str(&format!(", ≥{} peptides each", thresholds.min_peptides));
             }
             let hint = counts
                 .lowest_q
@@ -894,11 +894,11 @@ mod tests {
             lowest_q: Some(0.025),
         };
         let views = level_views(&summary_with(groups, 2));
-        assert_eq!(views[0].caption, "at 1% FDR · 11 decoys passing");
+        assert_eq!(views[0].caption, "at 1% FDR, 11 decoys passing");
         assert_eq!(views[0].hint, None);
         assert_eq!(
             views[2].caption,
-            "at 1% FDR · 0 decoys passing · ≥2 peptides"
+            "at 1% FDR, 0 decoys passing, ≥2 peptides each"
         );
         assert_eq!(
             views[2].hint.as_deref(),
@@ -923,11 +923,11 @@ mod tests {
         // (2 + 1) decoys over 400 targets: 0.75%; (11 + 1) over 1,200: 1%.
         assert_eq!(
             views[2].caption,
-            "at ≥99% probability · est. FDR 0.75% (2 decoys)"
+            "at ≥99% probability, est. FDR 0.75% (2 decoys)"
         );
         assert_eq!(
             views[0].caption,
-            "at ≥95% probability · est. FDR 1% (11 decoys)"
+            "at ≥95% probability, est. FDR 1% (11 decoys)"
         );
         assert!(views.iter().all(|view| view.hint.is_none()));
         // Switching modes starts from that mode's defaults, keeping min peptides.

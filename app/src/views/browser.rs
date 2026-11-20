@@ -29,7 +29,9 @@ use super::spectrum_plot::{coverage_view, ladder_view, spectrum_plot_view};
 use super::tables::{
     PeptideTable, ProteinLayout, ProteinTable, Sortable as _, SpectrumTable, probability_text,
 };
-use super::{callout, eyebrow, group_digits, panel_shell, panel_title, track};
+use super::{
+    callout, fact, facts, group_digits, plate, section, section_title, subsection_title, track,
+};
 use crate::browse::{
     self, BrowserData, COVERAGE_LINE, Drill, NoPlot, ProteinFilter, SampleMeasure, TOLERANCES,
     coverage_lines, facets, highest_value, saf_totals, spectrum_plot, tolerance_label,
@@ -81,7 +83,7 @@ fn choices(counted: Vec<(String, usize)>) -> Menu {
     counted
         .into_iter()
         .map(|(value, n)| Choice {
-            label: format!("{value} · {}", group_digits(n)).into(),
+            label: format!("{value} ({})", group_digits(n)).into(),
             value,
         })
         .collect::<Vec<_>>()
@@ -537,7 +539,7 @@ impl Browser {
                                 .flex_none()
                                 .text_size(px(12.))
                                 .text_color(palette.ink_muted)
-                                .child(format!("GO slim: {}", row.go.join(" · ")))
+                                .child(format!("GO slim: {}", row.go.join(", ")))
                         })
                     }))
                     .children(
@@ -613,41 +615,82 @@ impl Browser {
         cx: &mut Context<Self>,
     ) -> Div {
         let mode = self.spectra.read(cx).delegate().mode;
-        let heading = detail.assigned.as_ref().map_or_else(
-            || "No peptide assigned".to_string(),
-            |assigned| {
-                let decoy = if assigned.is_decoy { " · decoy" } else { "" };
+        // The peptide (a sequence, so monospaced) and its score beside it.
+        let heading = match detail.assigned.as_ref() {
+            None => div()
+                .text_size(px(15.))
+                .text_color(palette.ink_muted)
+                .child("No peptide assigned"),
+            Some(assigned) => {
                 let score = match mode {
                     ThresholdMode::Fdr => format!("q {}", format_rate(assigned.q_value)),
                     ThresholdMode::Probability => {
-                        format!("prob. {}", probability_text(Some(assigned.probability)))
+                        format!(
+                            "probability {}",
+                            probability_text(Some(assigned.probability))
+                        )
                     }
                 };
                 let peptide = assigned
                     .localized_peptide
                     .clone()
                     .unwrap_or_else(|| proforma(&assigned.form));
-                format!("{peptide} · {score}{decoy}")
-            },
-        );
+                div()
+                    .flex()
+                    .items_baseline()
+                    .gap_3()
+                    .min_w_0()
+                    .child(
+                        div()
+                            .min_w_0()
+                            .truncate()
+                            .font_family(MONO)
+                            .text_size(px(15.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .child(peptide),
+                    )
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_size(px(13.))
+                            .text_color(palette.ink_muted)
+                            .child(score),
+                    )
+                    .children(assigned.is_decoy.then(|| {
+                        div()
+                            .flex_none()
+                            .px_1p5()
+                            .rounded(px(3.))
+                            .bg(palette.fault_soft)
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(palette.fault)
+                            .child("Decoy")
+                    }))
+            }
+        };
         let site_line = detail.assigned.as_ref().and_then(|assigned| {
             let probs = assigned.site_probabilities.as_deref()?;
             let ascore = assigned
                 .best_ascore
-                .map_or_else(String::new, |a| format!(" · Ascore {a:.1}"));
+                .map_or_else(String::new, |a| format!(", Ascore {a:.1}"));
             Some(format!("Sites: {probs}{ascore}"))
         });
-        let facts = format!(
-            "{} · {}{}{}",
-            detail.run,
-            detail.key,
-            detail
-                .precursor_charge
-                .map_or_else(String::new, |z| format!(" · {z}+")),
-            detail
-                .precursor_mz
-                .map_or_else(String::new, |mz| format!(" · m/z {mz:.4}")),
-        );
+        let spectrum_facts = facts()
+            .text_size(px(12.))
+            .text_color(palette.ink_muted)
+            .child(div().child(detail.run.clone()))
+            .child(div().child(detail.key.clone()))
+            .children(
+                detail
+                    .precursor_charge
+                    .map(|z| div().child(format!("{z}+"))),
+            )
+            .children(
+                detail
+                    .precursor_mz
+                    .map(|mz| div().child(format!("m/z {mz:.4}"))),
+            );
         let chips = TOLERANCES.iter().enumerate().map(|(index, &tolerance)| {
             let selected = tolerance == self.tolerance;
             let button = Button::new(("tolerance", index))
@@ -671,11 +714,10 @@ impl Browser {
                 )
                 .child(
                     div()
-                        .font_family(MONO)
                         .text_size(px(12.))
                         .text_color(palette.ink_muted)
                         .child(format!(
-                            "{} of {} b/y ions · {:.0}% of intensity explained",
+                            "{} of {} b/y ions matched, {:.0}% of intensity explained",
                             plot.matched,
                             plot.theoretical,
                             plot.explained * 100.0
@@ -693,7 +735,7 @@ impl Browser {
                     NoPlot::Unreadable => "This spectrum's stored peaks could not be read.",
                 }),
         };
-        panel_shell(palette)
+        plate(palette)
             .flex_none()
             .child(
                 div()
@@ -705,28 +747,14 @@ impl Browser {
                         div()
                             .flex()
                             .flex_col()
+                            .gap_1()
                             .min_w_0()
-                            .child(eyebrow("Spectrum", palette))
-                            .child(
-                                div()
-                                    .font_family(MONO)
-                                    .text_size(px(14.))
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .truncate()
-                                    .child(heading),
-                            )
-                            .child(
-                                div()
-                                    .font_family(MONO)
-                                    .text_size(px(12.))
-                                    .text_color(palette.ink_faint)
-                                    .child(facts),
-                            )
+                            .child(heading)
+                            .child(spectrum_facts)
                             .children(site_line.map(|line| {
                                 div()
-                                    .font_family(MONO)
                                     .text_size(px(12.))
-                                    .text_color(palette.signal)
+                                    .text_color(palette.stain)
                                     .truncate()
                                     .child(line)
                             })),
@@ -987,16 +1015,16 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
         .flex()
         .items_center()
         .gap_2()
-        .child(panel_title("Similarity"))
+        .child(section_title("Similarity", None, palette))
         .child(
             div()
-                .text_size(px(12.))
-                .text_color(palette.ink_faint)
+                .text_size(px(13.))
+                .text_color(palette.ink_muted)
                 .child(if group.similar.is_empty() {
                     "No other passing group shares its peptides.".to_string()
                 } else {
                     format!(
-                        "Shares peptides with {} group{} · cluster of {} groups",
+                        "Shares peptides with {} group{}, in a cluster of {}",
                         group.similar.len(),
                         if group.similar.len() == 1 { "" } else { "s" },
                         group.cluster_size
@@ -1022,7 +1050,6 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
         .items_end()
         .gap_1()
         .text_size(px(11.))
-        .font_family(MONO)
         .child(
             div()
                 .w(px(220.))
@@ -1044,9 +1071,11 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
                 div()
                     .id(("similar", usize::try_from(id).unwrap_or_default()))
                     .truncate()
-                    .text_color(palette.signal)
+                    .text_color(palette.ink)
+                    .underline()
+                    .text_decoration_color(palette.rule_strong)
                     .cursor_pointer()
-                    .hover(|style| style.underline())
+                    .hover(|style| style.text_decoration_color(palette.ink))
                     .child(short_accession(&column.accession))
                     .on_click(cx.listener(move |this, _, _, cx| this.open_group(id, cx))),
             )
@@ -1054,7 +1083,7 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
     let rows = shared.iter().map(|peptide| {
         let dot = |held: bool| {
             cell(84.).child(div().size(px(8.)).rounded_full().bg(if held {
-                palette.signal
+                palette.stain
             } else {
                 palette.rule
             }))
@@ -1065,12 +1094,12 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
             .gap_1()
             .h(px(20.))
             .text_size(px(11.))
-            .font_family(MONO)
             .child(
                 div()
                     .w(px(220.))
                     .flex_none()
                     .truncate()
+                    .font_family(MONO)
                     .text_color(palette.ink)
                     .child(peptide.proforma.clone()),
             )
@@ -1099,7 +1128,7 @@ fn similarity_view(group: &GroupDetail, palette: &Palette, cx: &mut Context<Brow
                     if unique == 1 { "" } else { "s" },
                     if group.similar.len() > SIMILAR_COLUMNS {
                         format!(
-                            " · {} more groups not shown",
+                            "; {} more groups not shown",
                             group.similar.len() - SIMILAR_COLUMNS
                         )
                     } else {
@@ -1132,21 +1161,7 @@ fn page_label(page: &tuffold_store::SpectrumPage) -> String {
 }
 
 fn list_heading(title: &str, count: impl Into<SharedString>, palette: &Palette) -> Div {
-    div()
-        .flex()
-        .items_center()
-        .gap_2()
-        .child(panel_title(title.to_string()))
-        .child(
-            div()
-                .px_2()
-                .rounded(px(3.))
-                .bg(palette.paper_sunken)
-                .font_family(MONO)
-                .text_size(px(11.))
-                .text_color(palette.ink_muted)
-                .child(count.into()),
-        )
+    section_title(title.to_string(), Some(count.into()), palette)
 }
 
 fn proforma(form: &tuffold_core::PeptideForm) -> String {
@@ -1182,31 +1197,31 @@ fn group_header(group: &GroupDetail, palette: &Palette) -> Div {
         .map(|p| p.sequence.as_str())
         .collect::<std::collections::BTreeSet<_>>()
         .len();
-    let facts = format!(
-        "{} peptide sequences · {} spectra{}",
-        group_digits(sequences),
-        group_digits(spectra),
-        coverage.map_or_else(String::new, |c| format!(" · {:.0}% coverage", c * 100.0)),
-    );
+    let numbers = facts()
+        .flex_none()
+        .text_size(px(13.))
+        .child(fact(group_digits(sequences), "peptide sequences", palette))
+        .child(fact(group_digits(spectra), "spectra", palette))
+        .children(coverage.map(|c| fact(format!("{:.0}%", c * 100.0), "coverage", palette)));
     div()
         .flex()
         .flex_none()
         .items_end()
         .justify_between()
         .gap_4()
-        .pb_2()
+        .pb_3()
         .border_b_1()
-        .border_color(palette.rule)
+        .border_color(palette.rule_strong)
         .child(
             div()
                 .flex()
                 .flex_col()
+                .gap_0p5()
                 .min_w_0()
-                .child(eyebrow("Protein group", palette))
                 .child(
                     div()
-                        .font_family(MONO)
-                        .text_size(px(18.))
+                        .text_size(px(20.))
+                        .line_height(px(26.))
                         .font_weight(FontWeight::SEMIBOLD)
                         .truncate()
                         .child(leader.map_or_else(String::new, |m| m.accession.clone())),
@@ -1230,14 +1245,7 @@ fn group_header(group: &GroupDetail, palette: &Palette) -> Div {
                         .child(format!("Also: {}", others.join(", ")))
                 })),
         )
-        .child(
-            div()
-                .flex_none()
-                .font_family(MONO)
-                .text_size(px(12.))
-                .text_color(palette.ink_muted)
-                .child(facts),
-        )
+        .child(numbers)
 }
 
 /// The leader's sequence with its peptides highlighted.
@@ -1255,9 +1263,8 @@ fn coverage_panel(group: &GroupDetail, palette: &Palette) -> Div {
                  carry sequences (a FragPipe folder with its FASTA, or mzIdentML) to see it.",
             ),
     };
-    panel_shell(palette)
+    section("Sequence coverage", palette)
         .flex_none()
-        .child(eyebrow("Sequence coverage", palette))
         .child(body)
 }
 
@@ -1268,7 +1275,7 @@ fn engines_view(detail: &SpectrumDetail, palette: &Palette) -> Div {
             .iter()
             .map(|(name, value)| format!("{name} {}", short_number(*value)))
             .collect::<Vec<_>>()
-            .join(" · ");
+            .join(", ");
         div()
             .flex()
             .gap_3()
@@ -1295,7 +1302,6 @@ fn engines_view(detail: &SpectrumDetail, palette: &Palette) -> Div {
                 div()
                     .w(px(64.))
                     .flex_none()
-                    .font_family(MONO)
                     .child(psm.q_value.map_or_else(|| "—".into(), format_rate)),
             )
             .child(
@@ -1310,7 +1316,8 @@ fn engines_view(detail: &SpectrumDetail, palette: &Palette) -> Div {
     div()
         .flex()
         .flex_col()
-        .child(eyebrow("Engines", palette))
+        .gap_1()
+        .child(subsection_title("Engines", palette))
         .children(rows)
 }
 

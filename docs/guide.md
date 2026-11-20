@@ -36,7 +36,7 @@ project never changes it.
 - **New project from data…** (⌘N) picks files and creates a project from them.
 - **Open project…** (⌘O) opens a `.tuff`.
 - **Open the demo project** builds one from synthetic data, marked
-  *SYNTHETIC DATA* in the title bar, to try every view without lab data.
+  *Synthetic data* in the title bar, to try every view without lab data.
 
 With a project open, one bar at the top holds its name, the views (Overview,
 Proteins, Samples, Quant; ⌘1–4), and its actions: + adds data, the magnifier
@@ -353,7 +353,7 @@ An isobaric run holds every sample at once, one per reporter channel. Search
 with the label (`tuffold search … --label tmt`, `tmtpro`, `itraq4`, or `itraq8`,
 or import an engine's results and the run's spectra) and validate. On the
 **Quant** view, choose **Measure: Reporter ions**, pick the reagent set under
-*Plex · channel samples*, name the biosample in each channel, and click **Save plex**,
+*Plex*, name the biosample in each channel, and click **Save plex**,
 then give those channel biosamples categories under *Sample groups* and click
 **Save groups**. Or from the command line:
 

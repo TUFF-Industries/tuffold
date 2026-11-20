@@ -336,7 +336,7 @@ pub fn mbr_summary(reports: &[MbrRunReport]) -> String {
                 }
             ));
         }
-        lines.push(parts.join(" · "));
+        lines.push(parts.join("; "));
     }
     lines.join("\n")
 }
@@ -815,7 +815,7 @@ pub fn ms1_status(quant: &IntensityQuant) -> String {
     let measured: usize = quant.runs.iter().map(|r| r.measured).sum();
     let untraced: usize = quant.runs.iter().map(|r| r.untraced).sum();
     let mut parts = vec![format!(
-        "MS1 data in {with_ms1} of {} runs · {measured} of {traced} traced precursors have an \
+        "MS1 data in {with_ms1} of {} runs, {measured} of {traced} traced precursors have an \
          elution peak",
         quant.runs.len()
     )];
@@ -858,7 +858,7 @@ pub fn ms1_status(quant: &IntensityQuant) -> String {
             unnormalized.join(", ")
         )
     });
-    parts.join(" · ")
+    parts.join("; ")
 }
 
 /// A line on the TMT plexes behind reporter intensities: reagent sets, runs,
@@ -871,7 +871,7 @@ pub fn reporter_status(quant: &ReporterQuant) -> String {
     let runs = format!("{runs} {}", if runs == 1 { "run" } else { "runs" });
     let mut parts = vec![match quant.plexes.as_slice() {
         [plex] => format!(
-            "{} ({}, {runs}) · {} protein groups from {} PSMs with all {} channels",
+            "{} ({}, {runs}); {} protein groups from {} PSMs with all {} channels",
             plex_title(plex.plex),
             plex.name,
             q.rows.len(),
@@ -879,7 +879,7 @@ pub fn reporter_status(quant: &ReporterQuant) -> String {
             r.channels.len(),
         ),
         many => format!(
-            "{} plexes ({}; {runs}) · {} protein groups from {} PSMs with every channel",
+            "{} plexes ({}; {runs}); {} protein groups from {} PSMs with every channel",
             many.len(),
             many.iter()
                 .map(|p| format!("{} {}", p.name, plex_title(p.plex)))
@@ -938,7 +938,7 @@ pub fn reporter_status(quant: &ReporterQuant) -> String {
         )
     });
     parts.push("median-normalized across channels".into());
-    parts.join(" · ")
+    parts.join("; ")
 }
 
 /// When another reagent set with the same channel names would give more
@@ -1495,7 +1495,7 @@ mod tests {
         let quant = right.reporters.as_ref().unwrap();
         assert!(reporter_reagent_hint(quant).is_none());
         assert!(
-            reporter_status(quant).starts_with("TMT6 original (plex, 1 run) · 2 protein groups"),
+            reporter_status(quant).starts_with("TMT6 original (plex, 1 run); 2 protein groups"),
             "{}",
             reporter_status(quant)
         );
@@ -1815,8 +1815,8 @@ mod tests {
         assert_eq!(
             text,
             "Matched between runs in 2 runs: 4 of 15 precursors looked for were transferred at \
-             1% FDR.\na: 4 of 10 transferred\nb: 0 of 5 transferred · ranked by retention-time \
-             error (too few known peaks to train) · 3 damaged MS1 scans left out"
+             1% FDR.\na: 4 of 10 transferred\nb: 0 of 5 transferred; ranked by retention-time \
+             error (too few known peaks to train); 3 damaged MS1 scans left out"
         );
     }
 
@@ -1827,7 +1827,7 @@ mod tests {
         assert_eq!(
             mbr_summary(&[only]),
             "Matched between runs in 1 run: 1 of 1 precursor looked for was transferred at 1% \
-             FDR.\nsolo: 1 of 1 transferred · 1 damaged MS1 scan left out"
+             FDR.\nsolo: 1 of 1 transferred; 1 damaged MS1 scan left out"
         );
     }
 
@@ -1963,7 +1963,7 @@ mod tests {
             outcome.result.unwrap(),
             format!(
                 "Matched between runs in 1 run: {n} of {n} precursors looked for were \
-                 transferred at 1% FDR.\n{run}: {n} of {n} transferred · ranked by \
+                 transferred at 1% FDR.\n{run}: {n} of {n} transferred; ranked by \
                  retention-time error (too few known peaks to train)"
             )
         );

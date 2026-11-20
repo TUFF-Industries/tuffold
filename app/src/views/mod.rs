@@ -17,15 +17,7 @@ pub use validation_panel::{ThresholdHandler, ValidateHandler, ValidationControls
 
 use gpui_kit::{Div, FontWeight, IntoElement, ParentElement, SharedString, Styled, div, px};
 
-use crate::theme::{MONO, Palette};
-
-/// A small label above a heading.
-pub(crate) fn eyebrow(text: impl Into<SharedString>, palette: &Palette) -> Div {
-    div()
-        .text_size(px(12.))
-        .text_color(palette.ink_faint)
-        .child(text.into())
-}
+use crate::theme::Palette;
 
 /// The sunken track a set of exclusive choices sits in, like the tabs.
 pub(crate) fn track(palette: &Palette) -> Div {
@@ -38,32 +30,102 @@ pub(crate) fn track(palette: &Palette) -> Div {
         .bg(palette.paper_sunken)
 }
 
-/// A raised surface; callers add their own title row.
-pub(crate) fn panel_shell(palette: &Palette) -> Div {
+/// A section of a page: no box. Lists of facts sit on the page itself, and
+/// their title row carries the rule (see `section_header`).
+pub(crate) fn section_shell() -> Div {
+    div().flex().flex_col().gap_3().min_w_0()
+}
+
+/// A section's title row, ruled underneath; callers add the title and any
+/// controls (spread to the right).
+pub(crate) fn section_header(palette: &Palette) -> Div {
+    div()
+        .flex()
+        .items_center()
+        .justify_between()
+        .gap_3()
+        .min_h(px(28.))
+        .pb_2()
+        .border_b_1()
+        .border_color(palette.rule_strong)
+}
+
+/// A title, with what it counts beside it in a lighter ink (no pill).
+pub(crate) fn section_title(
+    title: impl Into<SharedString>,
+    count: Option<SharedString>,
+    palette: &Palette,
+) -> Div {
+    div()
+        .flex()
+        .items_baseline()
+        .gap_2()
+        .text_size(px(15.))
+        .line_height(px(20.))
+        .child(
+            div()
+                .font_weight(FontWeight::SEMIBOLD)
+                .text_color(palette.ink)
+                .child(title.into()),
+        )
+        .children(count.map(|count| div().text_color(palette.ink_faint).child(count)))
+}
+
+/// A section with a plain title.
+pub(crate) fn section(title: impl Into<SharedString>, palette: &Palette) -> Div {
+    section_shell().child(section_header(palette).child(section_title(title, None, palette)))
+}
+
+/// A heading inside a section (a group of findings, the engines).
+pub(crate) fn subsection_title(title: impl Into<SharedString>, palette: &Palette) -> Div {
+    div()
+        .text_size(px(13.))
+        .font_weight(FontWeight::SEMIBOLD)
+        .text_color(palette.ink_muted)
+        .child(title.into())
+}
+
+/// The one boxed surface: a raised plate for plots you look at (a spectrum,
+/// the volcano, a heat map). Lists and forms sit on the page instead.
+pub(crate) fn plate(palette: &Palette) -> Div {
     div()
         .flex()
         .flex_col()
         .gap_3()
-        .px_6()
-        .pt_4()
-        .pb_6()
-        .rounded(px(6.))
+        .p_5()
+        .rounded(px(4.))
         .border_1()
         .border_color(palette.rule)
         .bg(palette.paper_raised)
-        .shadow_sm()
 }
 
-pub(crate) fn panel_title(title: impl Into<SharedString>) -> Div {
+/// A number and what it counts, for a row of facts: "255 spectra".
+pub(crate) fn fact(
+    value: impl Into<SharedString>,
+    label: impl Into<SharedString>,
+    palette: &Palette,
+) -> Div {
     div()
-        .text_size(px(13.))
-        .font_weight(FontWeight::SEMIBOLD)
-        .child(title.into())
+        .flex()
+        .flex_none()
+        .gap_1()
+        .child(
+            div()
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(palette.ink)
+                .child(value.into()),
+        )
+        .child(div().text_color(palette.ink_muted).child(label.into()))
 }
 
-/// A raised surface with a title row.
-pub(crate) fn panel(title: impl Into<SharedString>, palette: &Palette) -> Div {
-    panel_shell(palette).child(panel_title(title))
+/// Facts side by side, set apart by space rather than joined by separators.
+pub(crate) fn facts() -> Div {
+    div()
+        .flex()
+        .flex_wrap()
+        .items_baseline()
+        .gap_x(px(20.))
+        .gap_y_1()
 }
 
 /// A left-ruled message block for errors and findings.
@@ -71,8 +133,8 @@ pub(crate) fn callout(color: gpui_kit::Hsla, background: gpui_kit::Hsla) -> Div 
     div()
         .px_4()
         .py_3()
-        .rounded(px(3.))
-        .border_l_3()
+        .rounded(px(2.))
+        .border_l_2()
         .border_color(color)
         .bg(background)
 }
@@ -95,10 +157,6 @@ pub(crate) fn notice_banner(message: &str, palette: &Palette) -> impl IntoElemen
             .text_color(palette.ink)
             .child(message.to_string()),
     )
-}
-
-pub(crate) fn mono(text: impl Into<SharedString>) -> impl IntoElement {
-    div().font_family(MONO).child(text.into())
 }
 
 /// `12345` -> `12,345`.

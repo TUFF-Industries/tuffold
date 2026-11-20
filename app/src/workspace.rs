@@ -19,7 +19,7 @@ use tuffold_validate::Thresholds;
 
 use crate::browse::{BrowserData, SampleMeasure};
 use crate::project::{self, ProjectReport, ValidationState};
-use crate::theme::{MONO, Palette, SANS};
+use crate::theme::{Palette, SANS};
 use crate::views::{
     Browser, BrowserMode, EmptyStateProps, ModelsOfferProps, OpenGroup, QuantView, ShowProtein,
     ThresholdHandler, ValidateHandler, ValidationControls, empty_state, failure_banner,
@@ -749,14 +749,18 @@ impl Workspace {
             .child(div().flex_1())
             .children(self.synthetic().then(|| {
                 div()
+                    .flex()
+                    .items_center()
+                    .gap_1p5()
                     .px_2()
-                    .py(px(1.))
+                    .py(px(2.))
                     .rounded(px(3.))
                     .bg(palette.caution_soft)
                     .text_color(palette.caution)
-                    .font_family(MONO)
-                    .text_size(px(11.))
-                    .child("SYNTHETIC DATA")
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::MEDIUM)
+                    .child(div().size(px(6.)).rounded_full().bg(palette.caution))
+                    .child("Synthetic data")
             }))
             .children(self.busy.filter(|_| self.project.is_some()).map(|label| {
                 div()

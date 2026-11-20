@@ -10,11 +10,13 @@ use gpui_kit::{App, Div, FontWeight, ParentElement, Styled, Window, div, px};
 use tuffold_store::ValidationSummary;
 use tuffold_validate::{NoteCode, ThresholdMode, Thresholds, format_rate};
 
-use super::{callout, eyebrow, group_digits, panel_shell, panel_title, track};
+use super::{
+    callout, group_digits, section_header, section_shell, section_title, subsection_title, track,
+};
 use crate::project::{
     Level, LevelView, MIN_PEPTIDE_CHOICES, ValidationState, choices, level_views, switched,
 };
-use crate::theme::{MONO, Palette};
+use crate::theme::Palette;
 
 /// Called with the thresholds the user picked.
 pub type ThresholdHandler = Rc<dyn Fn(Thresholds, &mut Window, &mut App)>;
@@ -39,7 +41,7 @@ pub fn validation_panel(
         ValidationState::NoData => None,
         ValidationState::Pending { stale } => Some(pending(*stale, controls, palette)),
         ValidationState::Failed(message) => Some(
-            panel_shell(palette).child(panel_title("Validation")).child(
+            validation_shell(palette).child(
                 callout(palette.fault, palette.fault_soft)
                     .text_size(px(13.))
                     .text_color(palette.fault)
@@ -72,7 +74,7 @@ fn pending(stale: bool, controls: &ValidationControls, palette: &Palette) -> Div
         }
         None => button,
     };
-    panel_shell(palette).child(panel_title("Validation")).child(
+    validation_shell(palette).child(
         div()
             .flex()
             .items_center()
@@ -117,13 +119,11 @@ fn done(summary: &ValidationSummary, controls: &ValidationControls, palette: &Pa
                 tile.pl_6().border_l_1().border_color(palette.rule)
             }
         });
-    panel_shell(palette)
+    section_shell()
+        .gap_4()
         .child(
-            div()
-                .flex()
-                .items_center()
-                .justify_between()
-                .child(panel_title("Validation"))
+            section_header(palette)
+                .child(section_title("Validation", None, palette))
                 .child(
                     div()
                         .flex()
@@ -138,7 +138,7 @@ fn done(summary: &ValidationSummary, controls: &ValidationControls, palette: &Pa
                         .child(track(palette).children(modes)),
                 ),
         )
-        .child(div().flex().items_start().children(tiles))
+        .child(div().flex().items_stretch().children(tiles))
         .children(
             (summary.localization.scored_psms > 0)
                 .then(|| localization_row(&summary.localization, palette)),
@@ -171,14 +171,6 @@ fn done(summary: &ValidationSummary, controls: &ValidationControls, palette: &Pa
                         .flex()
                         .flex_col()
                         .gap_1()
-                        .child(
-                            div()
-                                .font_family(MONO)
-                                .text_size(px(11.))
-                                .font_weight(FontWeight::MEDIUM)
-                                .text_color(palette.caution)
-                                .child(note.code.as_str()),
-                        )
                         .child(div().text_size(px(13.)).child(note.message.clone()))
                 }),
         )
@@ -206,7 +198,10 @@ fn level_tile(
             MIN_PEPTIDE_CHOICES.into_iter().map(move |choice| {
                 chip(
                     format!("min-peptides-{choice}"),
-                    format!("≥{choice} pep"),
+                    format!(
+                        "≥{choice} {}",
+                        if choice == 1 { "peptide" } else { "peptides" }
+                    ),
                     choice == thresholds.min_peptides,
                     Thresholds {
                         min_peptides: choice,
@@ -218,6 +213,7 @@ fn level_tile(
         })
         .into_iter()
         .flatten();
+    let passing = view.targets > 0;
     div()
         .flex_1()
         .flex()
@@ -226,29 +222,33 @@ fn level_tile(
         .min_w_0()
         .child(
             div()
-                .text_size(px(13.))
-                .text_color(palette.ink_muted)
-                .child(view.level.label()),
+                .flex()
+                .items_baseline()
+                .gap_2()
+                .child(
+                    div()
+                        .text_size(px(36.))
+                        .line_height(px(44.))
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_color(if passing {
+                            palette.ink
+                        } else {
+                            palette.ink_faint
+                        })
+                        .child(group_digits(view.targets)),
+                )
+                .child(
+                    div()
+                        .text_size(px(15.))
+                        .text_color(palette.ink_muted)
+                        .child(view.level.label().to_lowercase()),
+                ),
         )
         .child(
             div()
-                .mt_1()
-                .font_family(MONO)
-                .text_size(px(30.))
-                .line_height(px(36.))
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(if view.targets > 0 {
-                    palette.ink
-                } else {
-                    palette.ink_faint
-                })
-                .child(group_digits(view.targets)),
-        )
-        .child(
-            div()
-                .mt_1()
                 .text_size(px(12.))
-                .text_color(palette.ink_faint)
+                .line_height(px(18.))
+                .text_color(palette.ink_muted)
                 .child(view.caption.clone()),
         )
         .child(
@@ -315,16 +315,16 @@ fn engines(summary: &ValidationSummary, palette: &Palette) -> Div {
                     .flex_col()
                     .child(
                         div()
-                            .font_family(MONO)
+                            .font_weight(FontWeight::MEDIUM)
                             .truncate()
                             .child(engine.name.clone()),
                     )
                     .child(
                         div()
-                            .text_size(px(11.))
+                            .text_size(px(12.))
                             .text_color(palette.ink_faint)
                             .child(format!(
-                                "{} PSMs · {} {}",
+                                "{} PSMs, {} {}",
                                 group_digits(engine.psms),
                                 group_digits(engine.decoys),
                                 if engine.decoys == 1 {
@@ -344,18 +344,17 @@ fn engines(summary: &ValidationSummary, palette: &Palette) -> Div {
             )
             .child(
                 div()
-                    .w(px(96.))
+                    .w(px(112.))
                     .flex_none()
                     .flex()
                     .justify_end()
-                    .font_family(MONO)
                     .text_color(if ranked {
                         palette.ink
                     } else {
                         palette.ink_faint
                     })
                     .child(if ranked {
-                        format!("{} @1%", group_digits(engine.accepted))
+                        format!("{} at 1%", group_digits(engine.accepted))
                     } else {
                         "—".to_string()
                     }),
@@ -365,7 +364,8 @@ fn engines(summary: &ValidationSummary, palette: &Palette) -> Div {
         .mt_2()
         .flex()
         .flex_col()
-        .child(eyebrow("Engines", palette))
+        .gap_1()
+        .child(subsection_title("Engines", palette))
         .children(rows)
 }
 
@@ -374,26 +374,26 @@ fn localization_row(loc: &tuffold_store::LocalizationSummary, palette: &Palette)
         .estimated_flr
         .map_or_else(|| "—".into(), |f| format!("{:.2}%", f * 100.0));
     let mut detail = format!(
-        "{} of {} ambiguous-PTM spectra localized at ≥{:.0}% site probability · est. FLR {flr}",
+        "{} of {} ambiguous-PTM spectra localized at ≥{:.0}% site probability, est. FLR {flr}",
         group_digits(loc.localized_psms),
         group_digits(loc.scored_psms),
         loc.probability_threshold * 100.0,
     );
     if loc.missing_peaks_psms > 0 {
         detail.push_str(&format!(
-            " · {} missing peaks",
+            "; {} missing peaks",
             group_digits(loc.missing_peaks_psms)
         ));
     }
     if loc.capped_psms > 0 {
         detail.push_str(&format!(
-            " · {} capped at 256 isoforms",
+            "; {} capped at 256 isoforms",
             group_digits(loc.capped_psms)
         ));
     }
     if loc.unscorable_psms > 0 {
         detail.push_str(&format!(
-            " · {} unscorable",
+            "; {} unscorable",
             group_digits(loc.unscorable_psms)
         ));
     }
@@ -406,8 +406,8 @@ fn localization_row(loc: &tuffold_store::LocalizationSummary, palette: &Palette)
         .items_center()
         .justify_between()
         .gap_3()
-        .text_size(px(12.))
-        .child(eyebrow("PTM localization", palette))
+        .text_size(px(13.))
+        .child(subsection_title("PTM localization", palette).flex_none())
         .child(
             div()
                 .flex_1()
@@ -416,6 +416,11 @@ fn localization_row(loc: &tuffold_store::LocalizationSummary, palette: &Palette)
                 .text_color(palette.ink_muted)
                 .child(detail),
         )
+}
+
+/// The Validation section before there are results to show.
+fn validation_shell(palette: &Palette) -> Div {
+    section_shell().child(section_header(palette).child(section_title("Validation", None, palette)))
 }
 
 fn is_engine_note(code: NoteCode) -> bool {
